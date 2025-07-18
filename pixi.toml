@@ -1,0 +1,40 @@
+[workspace]
+authors = ["Your Name <your.email@example.com>"]
+channels = ["knime", "conda-forge"]
+name = "html-xls-reader-extension"
+platforms = ["win-64", "linux-64", "osx-64", "osx-arm64"]
+version = "1.0.0"
+
+[tasks]
+test = "python -m pytest tests/ -v --cov=src --cov-report=html --cov-report=xml"
+lint = "black src/ tests/ && flake8 src/ tests/ && mypy src/"
+format = "black src/ tests/"
+clean = "rm -rf build/ .pixi/ __pycache__ .pytest_cache .coverage htmlcov/"
+
+[dependencies]
+python = "3.11.*"
+knime-extension = "5.5.*"
+knime-python-base = "5.5.*"
+pandas = ">=2.0"
+beautifulsoup4 = ">=4.12"
+lxml = ">=4.9"
+html5lib = ">=1.1"
+chardet = ">=5.0"
+openpyxl = ">=3.1"
+
+# Development dependencies
+pytest = ">=7.4"
+pytest-cov = ">=4.1"
+black = ">=23.0"
+flake8 = ">=6.0"
+mypy = ">=1.5"
+
+[feature.build.dependencies]
+python = "3.9.*"
+knime-extension-bundling = "5.5.*"
+
+[feature.build.tasks]
+build = { args = [{ "arg" = "dest", "default" = "./build" }], cmd = "python $CONDA_PREFIX/bin/build_python_extension.py . {{ dest }}"}
+
+[environments]
+build = {features = ["build"], no-default-feature = true}
