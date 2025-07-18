@@ -5,31 +5,19 @@ extension_module: extension
 description: HTML-XLS Table Reader
 long_description: Read HTML tables from files with .xls extension. Supports batch processing and advanced parsing options.
 version: 1.0.0
-vendor: Tetra Pak
+vendor: Salman Ali
 license_file: LICENSE.TXT
 
 feature_dependencies:
   - org.knime.features.python3.scripting 5.5.0
 
-python_environment:
-  name: html_xls_reader_env
-  channels:
-    - conda-forge
-  dependencies:
-    - python=3.10
-    - pandas
-    - beautifulsoup4
-    - lxml
-    - openpyxl
-    - numpy
-    - xlrd
-    - pip
-    - pip:
-        - html5lib
+build:
+  java_version: 17
+  maven_version: 3.8.5
 
 node_dependencies:
   - knime-python-base >= 5.2.0
 
-build:
-  java_version: 17
-  maven_version: 3.8.5
+python_environment:
+  manager: pixi
+  environment_file: pixi.toml
