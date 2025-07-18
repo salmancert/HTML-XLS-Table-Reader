@@ -1,0 +1,77 @@
+name: Build
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.11', '3.12']
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Pixi
+      uses: prefix-dev/setup-pixi@v0.4.1
+      with:
+        pixi-version: latest
+    
+    - name: Install dependencies
+      run: pixi install
+    
+    - name: Run tests
+      run: |
+        pixi run test
+    
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Pixi
+      uses: prefix-dev/setup-pixi@v0.4.1
+    
+    - name: Install dependencies
+      run: pixi install
+    
+    - name: Run linting
+      run: |
+        pixi run lint
+
+  build:
+    needs: [test, lint]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Pixi
+      uses: prefix-dev/setup-pixi@v0.4.1
+    
+    - name: Install dependencies
+      run: pixi install
+    
+    - name: Build extension
+      run: |
+        pixi run build
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: knime-extension
+        path: build/
