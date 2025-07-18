@@ -1,0 +1,213 @@
+# KNIME HTML XLS Reader Extension Repository
+
+This repository implements a KNIME Python node extension that reads HTML tables saved as `.xls` files, with the following advanced features:
+
+* **Excel file format detection**: automatically determines whether a file is an HTML spreadsheet or a binary Excel file and parses accordingly.
+* **Advanced parsing options**: configurable header row, rows to skip, and table selection by index.
+* **Batch processing**: select and process multiple files at once, with the option to combine extracted tables into a single output.
+* **GUI for file selection**: a file chooser dialog for interactive selection of `.xls` files.
+
+## Repository Structure
+
+```plaintext
+.
+├── icons
+│   └── html_xls_icon.png        # 16×16 icon for the node
+├── src
+│   └── extension.py             # Python module defining the custom node
+├── demos
+│   └── Example_HTML_XLS_Reader.knwf  # Example workflow demonstrating the node
+├── knime.yml                    # Extension metadata fileciteturn3file1
+├── config.yml                   # Configuration for using a local Python executable fileciteturn3file13
+├── requirements.txt             # Python dependencies for the node
+├── README.md                    # Overview and installation instructions
+└── LICENSE.txt                  # MIT License
+```
+
+---
+
+## requirements.txt
+
+```text
+pandas>=1.5.0
+beautifulsoup4>=4.11.0
+lxml>=4.8.0
+openpyxl>=3.0.0
+PySide2>=5.15.0
+```
+
+---
+
+## knime.yml
+
+```yaml
+name: html_xls_reader            # ID suffix of the extension
+author: Salman Ali                # Extension author
+extension_module: extension       # Python module under src/
+description: >-
+  Reads HTML tables from .xls files with advanced parsing and batch processing.
+long_description: >-
+  This KNIME Python extension node automatically detects file format (HTML vs.
+  binary Excel), offers parsing options (header row, skip rows, table index),
+  supports batch file processing, and provides a GUI for selecting files.
+group_id: org.example.htmlxls    # Combined with name to form extension ID
+version: 0.1.0                    # Semantic versioning
+vendor: Your Organization          # Organization or individual
+license_file: LICENSE.txt         # License information
+feature_dependencies: []          # No additional KNIME extensions required
+```
+
+---
+
+## config.yml
+
+```yaml
+org.example.htmlxls.html_xls_reader:
+  src: src
+  python_executable: /usr/bin/python3   # Path to local Python installation fileciteturn3file13
+  debug_mode: true                     # Enable live reload during development
+```
+
+---
+
+## src/extension.py
+
+```python
+import knime.extension as knext
+import pandas as pd
+from pathlib import Path
+from PySide2 import QtWidgets
+
+@knext.node(
+    name="HTML XLS Reader",
+    node_type=knext.NodeType.SOURCE,
+    icon_path="../icons/html_xls_icon.png",
+    category="/community/HTML"
+)
+@knext.output_table(name="Output Table", description="Parsed table from selected files")
+class HTMLXLSReader:
+    """
+    Reads HTML tables saved as .xls files, with options for parsing and batch processing.
+    """
+    files = knext.StringParameter(
+        label="Files or Folder",
+        description="Comma-separated list of .xls file paths or a folder containing them",
+        default_value=""
+    )
+    header = knext.IntParameter(
+        label="Header Row",
+        description="Zero-based index of header row",
+        default_value=0
+    )
+    skip_rows = knext.IntParameter(
+        label="Skip Rows",
+        description="Number of rows to skip before parsing",
+        default_value=0
+    )
+    table_index = knext.IntParameter(
+        label="Table Index",
+        description="Index of the HTML <table> to extract",
+        default_value=0
+    )
+    combine = knext.BoolParameter(
+        label="Combine Tables",
+        description="Combine parsed tables into a single output",
+        default_value=True
+    )
+
+    def configure(self, config_context):
+        # Define output schema as found by pandas.read_html (inferred dynamically)
+        return knext.Schema.knime_table_from_pandas(pd.DataFrame())
+
+    def execute(self, exec_context):
+        # Launch GUI if no files specified
+        file_list = []
+        if not self.files.strip():
+            dialog = QtWidgets.QFileDialog()
+            dialog.setFileMode(QtWidgets.QFileDialog.ExistingFiles)
+            dialog.setNameFilter("Excel files (*.xls)")
+            if dialog.exec_():
+                file_list = dialog.selectedFiles()
+        else:
+            for p in self.files.split(","):
+                path = Path(p.strip())
+                if path.is_dir():
+                    file_list.extend([str(f) for f in path.glob("*.xls")])
+                else:
+                    file_list.append(str(path))
+
+        tables = []
+        for fp in file_list:
+            data = Path(fp).read_bytes()
+            header_bytes = data[:1024].lower()
+            if b"<table" in header_bytes:
+                dfs = pd.read_html(
+                    data.decode('utf-8', errors='ignore'),
+                    header=self.header,
+                    skiprows=self.skip_rows
+                )
+                df = dfs[self.table_index]
+            else:
+                df = pd.read_excel(
+                    fp,
+                    header=self.header,
+                    skiprows=self.skip_rows
+                )
+            tables.append(df)
+
+        result = pd.concat(tables, ignore_index=True) if self.combine else (tables[self.table_index] if tables else pd.DataFrame())
+        return knext.Table.from_pandas(result)
+```
+
+---
+
+## README.md
+
+````markdown
+# KNIME HTML XLS Reader Extension
+
+A KNIME Python node to read HTML tables from files with `.xls` extension.
+
+## Features
+- Automatic detection of HTML vs. binary Excel format
+- Configurable header row, skip rows, and table index
+- Batch processing of multiple files or entire folders
+- GUI for interactive file selection
+
+## Installation
+1. Clone this repository.
+2. Install Python dependencies:
+   ```bash
+   pip install -r requirements.txt
+````
+
+3. In KNIME Analytics Platform, append to your `knime.ini`:
+
+   ```
+   -Dknime.python.extension.config=/path/to/config.yml
+   ```
+4. Restart KNIME; the "HTML XLS Reader" node will appear under **Community → HTML**.
+
+## Usage
+
+Drag the "HTML XLS Reader" node into your workflow, configure parsing options, and execute. The output port provides a single combined table by default.
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE.txt](LICENSE.txt) for details.
+
+````
+
+---
+
+## LICENSE.txt
+```text
+MIT License
+
+Copyright (c) 2025 Salman Ali
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the \"Software\"), to deal
+in the Software without restriction, including without limitation the rights
+...standard MIT text...
+````
