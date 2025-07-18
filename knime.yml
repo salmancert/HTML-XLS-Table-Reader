@@ -6,6 +6,7 @@ description: HTML-XLS Table Reader
 long_description: Read HTML tables from files with .xls extension. Supports batch processing and advanced parsing options.
 version: 1.0.0
 vendor: Salman Ali
+pixi_toml_path: pixi.toml
 license_file: LICENSE.TXT
 
 feature_dependencies:
