@@ -5,7 +5,513 @@ This repository implements a KNIME Python node extension that reads HTML tables 
 * **Excel file format detection**: automatically determines whether a file is an HTML spreadsheet or a binary Excel file and parses accordingly.
 * **Advanced parsing options**: configurable header row, rows to skip, and table selection by index.
 * **Batch processing**: select and process multiple files at once, with the option to combine extracted tables into a single output.
-* **GUI for file selection**: a file chooser dialog for interactive selection of `.xls` files.
+* **GUI for file selection**: a file chooser dialog for interactive selection of `.xls` files.# KNIME HTML-XLS Reader Extension - Local Python Version
+
+This version uses your system's local Python installation instead of conda/pixi.
+
+## Project Structure
+
+```
+knime-html-xls-reader/
+├── src/
+│   └── extension.py          # Main extension code
+├── icons/
+│   └── icon.png             # Node icon (16x16 PNG)
+├── knime.yml                # KNIME extension metadata
+├── config.yml               # Local development configuration
+├── requirements.txt         # Python dependencies
+├── setup.py                 # Python package setup
+├── LICENSE.TXT              # License file
+├── README.md                # Documentation
+└── install_dependencies.py  # Helper to install deps locally
+```
+
+## Key Changes for Local Python
+
+### 1. knime.yml (WITHOUT pixi/conda)
+
+```yaml
+name: html_xls_reader
+author: Your Name
+group_id: org.example.htmlxls
+extension_module: extension
+description: HTML-XLS Table Reader
+long_description: Read HTML tables from files with .xls extension. Supports batch processing and advanced parsing options.
+version: 1.0.0
+vendor: Your Organization
+license_file: LICENSE.TXT
+# NO pixi_toml_path - using local Python instead
+```
+
+### 2. config.yml (for local development)
+
+```yaml
+org.example.htmlxls.html_xls_reader:
+  src: ./src
+  python_executable: /usr/bin/python3  # Path to your local Python
+  # OR on Windows: C:\Python311\python.exe
+  # OR use virtual environment: ./venv/bin/python
+  debug_mode: true
+```
+
+### 3. requirements.txt
+
+```txt
+# Core dependencies
+pandas>=2.0.0
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
+html5lib>=1.1
+chardet>=5.0.0
+openpyxl>=3.1.0
+numpy>=1.24.0
+
+# KNIME dependencies (if available via pip)
+# Note: These might need manual installation
+# knime-python-base>=5.5.0
+# knime-extension>=5.5.0
+```
+
+### 4. setup.py
+
+```python
+from setuptools import setup, find_packages
+
+with open("README.md", "r", encoding="utf-8") as fh:
+    long_description = fh.read()
+
+with open("requirements.txt", "r", encoding="utf-8") as fh:
+    requirements = [line.strip() for line in fh if line.strip() and not line.startswith("#")]
+
+setup(
+    name="knime-html-xls-reader",
+    version="1.0.0",
+    author="Your Name",
+    author_email="your.email@example.com",
+    description="KNIME node for reading HTML tables from XLS files",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    url="https://github.com/yourusername/knime-html-xls-reader",
+    packages=find_packages(where="src"),
+    package_dir={"": "src"},
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: Apache Software License",
+        "Operating System :: OS Independent",
+    ],
+    python_requires=">=3.8",
+    install_requires=requirements,
+)
+```
+
+### 5. install_dependencies.py
+
+```python
+#!/usr/bin/env python3
+"""
+Helper script to set up local Python environment for KNIME extension
+"""
+import os
+import sys
+import subprocess
+import venv
+from pathlib import Path
+
+def create_venv():
+    """Create a virtual environment for the extension"""
+    venv_path = Path("venv")
+    
+    if venv_path.exists():
+        print(f"Virtual environment already exists at {venv_path}")
+        return venv_path
+    
+    print("Creating virtual environment...")
+    venv.create(venv_path, with_pip=True)
+    print(f"Virtual environment created at {venv_path}")
+    
+    return venv_path
+
+def get_pip_path(venv_path):
+    """Get the pip executable path"""
+    if sys.platform == "win32":
+        return venv_path / "Scripts" / "pip.exe"
+    else:
+        return venv_path / "bin" / "pip"
+
+def get_python_path(venv_path):
+    """Get the python executable path"""
+    if sys.platform == "win32":
+        return venv_path / "Scripts" / "python.exe"
+    else:
+        return venv_path / "bin" / "python"
+
+def install_requirements(pip_path):
+    """Install requirements using pip"""
+    print("Installing requirements...")
+    
+    # Upgrade pip first
+    subprocess.check_call([str(pip_path), "install", "--upgrade", "pip"])
+    
+    # Install requirements
+    subprocess.check_call([str(pip_path), "install", "-r", "requirements.txt"])
+    
+    # Try to install KNIME packages if available
+    try:
+        subprocess.check_call([str(pip_path), "install", "knime-extension", "knime-python-base"])
+        print("KNIME packages installed successfully")
+    except subprocess.CalledProcessError:
+        print("Warning: Could not install KNIME packages via pip.")
+        print("You may need to install them manually or use KNIME's bundled versions.")
+
+def create_config_yml(python_path):
+    """Create config.yml with the correct Python path"""
+    config_content = f"""# Local development configuration
+# Auto-generated by install_dependencies.py
+
+org.example.htmlxls.html_xls_reader:
+  src: ./src
+  python_executable: {python_path.absolute()}
+  debug_mode: true
+"""
+    
+    with open("config.yml", "w") as f:
+        f.write(config_content)
+    
+    print(f"Created config.yml with Python path: {python_path.absolute()}")
+
+def main():
+    """Main setup function"""
+    print("Setting up KNIME HTML-XLS Reader Extension with local Python")
+    print("=" * 60)
+    
+    # Create virtual environment
+    venv_path = create_venv()
+    
+    # Get paths
+    pip_path = get_pip_path(venv_path)
+    python_path = get_python_path(venv_path)
+    
+    # Install requirements
+    install_requirements(pip_path)
+    
+    # Create config.yml
+    create_config_yml(python_path)
+    
+    print("\n" + "=" * 60)
+    print("Setup complete!")
+    print(f"\nTo use this extension in KNIME:")
+    print(f"1. Add to your knime.ini:")
+    print(f"   -Dknime.python.extension.config={Path.cwd() / 'config.yml'}")
+    print(f"2. Restart KNIME Analytics Platform")
+    print(f"\nPython executable: {python_path.absolute()}")
+    print(f"\nTo activate the virtual environment manually:")
+    if sys.platform == "win32":
+        print(f"   .\\venv\\Scripts\\activate")
+    else:
+        print(f"   source venv/bin/activate")
+
+if __name__ == "__main__":
+    main()
+```
+
+### 6. Local Installation Instructions (README_LOCAL_SETUP.md)
+
+```markdown
+# Local Python Setup for KNIME Extension
+
+This guide explains how to use the KNIME HTML-XLS Reader extension with a local Python installation instead of conda/pixi.
+
+## Prerequisites
+
+- Python 3.8 or higher installed on your system
+- KNIME Analytics Platform 5.5 or higher
+- pip package manager
+
+## Setup Options
+
+### Option 1: Using System Python
+
+1. **Install dependencies globally** (not recommended):
+```bash
+pip install -r requirements.txt
+```
+
+2. **Create config.yml**:
+```yaml
+org.example.htmlxls.html_xls_reader:
+  src: ./src
+  python_executable: /usr/bin/python3  # Your system Python path
+  debug_mode: true
+```
+
+### Option 2: Using Virtual Environment (Recommended)
+
+1. **Run the setup script**:
+```bash
+python install_dependencies.py
+```
+
+This will:
+- Create a virtual environment
+- Install all dependencies
+- Generate config.yml with correct paths
+
+2. **Manual setup** (if you prefer):
+```bash
+# Create virtual environment
+python -m venv venv
+
+# Activate it
+# On Linux/Mac:
+source venv/bin/activate
+# On Windows:
+.\venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Create config.yml pointing to venv Python
+```
+
+### Option 3: Using Existing Environment
+
+If you already have a Python environment with the required packages:
+
+1. **Find your Python path**:
+```bash
+which python  # Linux/Mac
+where python  # Windows
+```
+
+2. **Create config.yml**:
+```yaml
+org.example.htmlxls.html_xls_reader:
+  src: ./src
+  python_executable: /path/to/your/python
+  debug_mode: true
+```
+
+## Configure KNIME
+
+1. **Locate your knime.ini** file:
+   - Windows: `<KNIME_INSTALL_DIR>/knime.ini`
+   - Linux/Mac: `<KNIME_INSTALL_DIR>/knime.ini`
+
+2. **Add the configuration path**:
+```
+-Dknime.python.extension.config=/absolute/path/to/config.yml
+```
+
+3. **Restart KNIME Analytics Platform**
+
+## Verify Installation
+
+1. Open KNIME Analytics Platform
+2. Check the node repository for "HTML-XLS Table Reader"
+3. Drag the node to your workflow
+4. If there are errors, check the KNIME console
+
+## Troubleshooting
+
+### Python Path Issues
+- Use absolute paths in config.yml
+- On Windows, use forward slashes or escape backslashes
+- Ensure Python executable has proper permissions
+
+### Missing Dependencies
+```bash
+# Check installed packages
+pip list
+
+# Install missing packages
+pip install pandas beautifulsoup4 lxml
+```
+
+### KNIME-specific Packages
+If you can't install knime-extension via pip:
+1. Use KNIME's bundled Python environment as a reference
+2. Copy necessary files from KNIME's Python installation
+3. Or use the extension without full KNIME API features
+
+## Using Without KNIME Packages
+
+If you can't install KNIME packages, modify the extension.py imports:
+
+```python
+try:
+    import knime.extension as knext
+except ImportError:
+    # Fallback mode without KNIME packages
+    print("Warning: Running without KNIME packages")
+    # Implement minimal compatibility layer
+```
+```
+
+### 7. Makefile (Optional, for easier management)
+
+```makefile
+.PHONY: setup install clean test lint format
+
+# Setup virtual environment and install dependencies
+setup:
+	python install_dependencies.py
+
+# Install dependencies in current environment
+install:
+	pip install -r requirements.txt
+
+# Clean up generated files
+clean:
+	rm -rf venv/
+	rm -rf __pycache__/
+	rm -rf src/__pycache__/
+	rm -rf *.egg-info/
+	rm -f config.yml
+
+# Run tests (if you have any)
+test:
+	python -m pytest tests/
+
+# Lint code
+lint:
+	flake8 src/
+	pylint src/
+
+# Format code
+format:
+	black src/
+	isort src/
+
+# Build a simple package
+package:
+	python setup.py sdist bdist_wheel
+
+# Show current Python path
+which-python:
+	@which python || where python
+
+# Check dependencies
+check-deps:
+	pip list | grep -E "pandas|beautifulsoup4|lxml|chardet"
+```
+
+### 8. .gitignore (Updated for local Python)
+
+```gitignore
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# Configuration with local paths
+config.yml
+!config.yml.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# KNIME
+*.knwf
+.metadata/
+
+# Logs
+*.log
+```
+
+### 9. config.yml.example
+
+```yaml
+# Example configuration for local Python
+# Copy this to config.yml and update paths
+
+org.example.htmlxls.html_xls_reader:
+  src: ./src
+  # Option 1: System Python
+  # python_executable: /usr/bin/python3
+  
+  # Option 2: Virtual environment (recommended)
+  # python_executable: ./venv/bin/python
+  
+  # Option 3: Windows paths
+  # python_executable: C:/Python311/python.exe
+  # python_executable: ./venv/Scripts/python.exe
+  
+  debug_mode: true
+```
+
+## Key Differences from Conda/Pixi Version:
+
+1. **No pixi.toml or pixi.lock** - Using requirements.txt instead
+2. **No conda environment** - Using system Python or virtualenv
+3. **Manual dependency management** - Using pip instead of pixi
+4. **config.yml required** - Must specify python_executable path
+5. **Simpler build process** - No complex bundling needed
+
+## Usage Instructions:
+
+1. **Initial Setup**:
+```bash
+# Clone the repository
+git clone <your-repo>
+cd knime-html-xls-reader
+
+# Run setup
+python install_dependencies.py
+
+# Or manually:
+python -m venv venv
+source venv/bin/activate  # or venv\Scripts\activate on Windows
+pip install -r requirements.txt
+```
+
+2. **Configure KNIME**:
+```bash
+# Add to knime.ini:
+-Dknime.python.extension.config=/path/to/your/config.yml
+```
+
+3. **Development**:
+```bash
+# Activate virtual environment
+source venv/bin/activate
+
+# Make changes to src/extension.py
+# Test in KNIME (restart required for structural changes)
+```
+
+This approach gives you full control over the Python environment and doesn't require conda or pixi!
 
 ## Repository Structure
 
