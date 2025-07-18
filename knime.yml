@@ -7,5 +7,29 @@ long_description: Read HTML tables from files with .xls extension. Supports batc
 version: 1.0.0
 vendor: Your Organization
 license_file: LICENSE.TXT
+
 feature_dependencies:
   - org.knime.features.python3.scripting 5.5.0
+
+python_environment:
+  name: html_xls_reader_env
+  channels:
+    - conda-forge
+  dependencies:
+    - python=3.10
+    - pandas
+    - beautifulsoup4
+    - lxml
+    - openpyxl
+    - numpy
+    - xlrd
+    - pip
+    - pip:
+        - html5lib
+
+node_dependencies:
+  - knime-python-base >= 5.2.0
+
+build:
+  java_version: 17
+  maven_version: 3.8.5
