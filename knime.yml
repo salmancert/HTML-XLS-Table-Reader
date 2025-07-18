@@ -7,17 +7,6 @@ long_description: Read HTML tables from files with .xls extension. Supports batc
 version: 1.0.0
 vendor: Salman Ali
 license_file: LICENSE.TXT
-
+pixi_toml_path: pixi.toml  # <-- This was missing!
 feature_dependencies:
   - org.knime.features.python3.scripting 5.5.0
-
-build:
-  java_version: 17
-  maven_version: 3.8.5
-
-node_dependencies:
-  - knime-python-base >= 5.2.0
-
-python_environment:
-  manager: pixi
-  environment_file: pixi.toml
